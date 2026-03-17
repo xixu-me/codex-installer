@@ -1,5 +1,7 @@
 # codex-installer
 
+中文说明请见 [README.zh.md](README.zh.md).
+
 Bootstrap installer for installing the Codex CLI on macOS/Linux from the official `openai/codex` GitHub releases and signing in with ChatGPT device code by default.
 
 ## What this repository does
