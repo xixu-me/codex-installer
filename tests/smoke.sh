@@ -51,7 +51,7 @@ main() {
     "sha256 prefix is stripped"
     
     tmp_file="$(mktemp)"
-    trap 'rm -f -- '"'"${tmp_file}"'"'' EXIT
+    trap 'rm -f -- "${tmp_file:-}"' EXIT
     printf 'abc' >"$tmp_file"
     assert_eq \
     "$(sha256_file "$tmp_file")" \
