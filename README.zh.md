@@ -1,89 +1,170 @@
 # codex-manager
 
-***[English](README.md)***
+[![CI](https://github.com/xixu-me/codex-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/xixu-me/codex-manager/actions/workflows/ci.yml)
 
-`xixu-me/codex-manager` 提供 `manage.sh`，它是安装、更新和移除 Codex CLI 的唯一入口，程序来源于官方 `openai/codex` GitHub Releases。
+**_[English](./README.md)_**
 
-它仅支持 macOS 和 Linux，并且只适用于 `x86_64` 与 `arm64` 架构。
+一个基于 Bash 的小型管理器，从 [GitHub releases](https://github.com/openai/codex/releases) 安装、更新和移除官方的 Codex CLI。
 
-## 入口
+`codex-manager` 专为 Linux 和 macOS 上直接通过 shell 安装而设计。它会为当前平台获取正确的发布资源，在可用时校验官方发布的校验和，将 `codex` 二进制安装到合适的位置，并且可以在安装后按需启动设备码登录流程。
 
-所有操作都通过 `manage.sh` 完成：
+> [!NOTE]
+> 安装器仅支持 Linux 和 macOS 目标平台。你可以在其他环境中编辑该存储库，但受管理的 Codex 安装流程仅面向类 Unix 系统。
+
+## 亮点
+
+- 从 GitHub releases 安装官方 `codex` 二进制。
+- 支持 `install`、`update` 和 `remove` 工作流。
+- 接受 `latest`、`0.115.0`、`v0.115.0` 和 `rust-v0.115.0` 这些版本格式。
+- 当 GitHub 发布校验和时进行校验。
+- 除非你选择跳过，否则会自动安装缺失的依赖。
+- 兼容常见包管理器，包括 `apt`、`dnf`、`brew`、`zypper`、`apk` 和 `yum`。
+
+## 为什么默认使用设备码登录
+
+该安装器会显式执行：
+
+```bash
+codex login --device-auth
+```
+
+该流程会输出验证链接和一次性代码，更适合远程或无头机器。该存储库显式传入该参数，是为了让登录路径更可预测。若设备码登录不可用，Codex 会回退到标准的浏览器登录流程。
+
+## 快速开始
+
+安装最新版 Codex 并启动登录：
+
+```bash
+curl -fsSL https://github.com/xixu-me/codex-manager/raw/refs/heads/main/manage.sh | bash -s -- install
+```
+
+安装指定版本：
+
+```bash
+curl -fsSL https://github.com/xixu-me/codex-manager/raw/refs/heads/main/manage.sh | bash -s -- install --version 0.115.0
+```
+
+安装但不启动登录：
+
+```bash
+curl -fsSL https://github.com/xixu-me/codex-manager/raw/refs/heads/main/manage.sh | bash -s -- install --skip-login
+```
+
+使用自定义安装目录：
+
+```bash
+curl -fsSL https://github.com/xixu-me/codex-manager/raw/refs/heads/main/manage.sh | CODEX_INSTALL_DIR="$HOME/bin" bash -s -- install
+```
+
+## 命令
+
+如果你想在本地运行该管理器，可以先克隆存储库：
+
+```bash
+git clone https://github.com/xixu-me/codex-manager.git
+cd codex-manager
+```
+
+然后使用主入口：
 
 ```bash
 ./manage.sh <command> [options]
 ```
 
-也可以直接从本仓库流式执行：
+### `install`
+
+将 Codex 安装到默认目录或指定目录，并可选择启动设备码登录流程。如果设备码登录不可用，Codex 会回退到标准的浏览器登录流程。
 
 ```bash
-curl -fsSL https://github.com/xixu-me/codex-manager/raw/refs/heads/main/manage.sh | bash -s -- <command>
-```
-
-## 命令
-
-- `install`：安装 Codex，并在需要时启动设备码登录。
-- `update`：更新已有的 Codex 安装，不会自动登录。
-- `remove`：移除已安装的 `codex` 二进制，并可选清理配置。
-
-可运行 `./manage.sh <command> --help` 查看各命令的详细参数。
-
-## 安装
-
-```bash
-./manage.sh install [options]
+./manage.sh install
+./manage.sh install --version 0.115.0
+./manage.sh install --install-dir "$HOME/.local/bin" --skip-login
 ```
 
 常用选项：
 
-- `--install-dir DIR`：将二进制安装到 `DIR`。
-- `--version VERSION`：安装指定版本，可用值包括 `latest`、`0.115.0`、`v0.115.0` 和 `rust-v0.115.0`。
-- `--skip-deps`：跳过依赖安装检查。
-- `--skip-login`：安装后不启动设备码登录。
-- `--help`, `-h`：显示帮助。
+- `--install-dir DIR`
+- `--version VERSION`
+- `--skip-deps`
+- `--skip-login`
 
-## 更新
+### `update`
+
+原地更新现有的 Codex 安装，不会触发登录。
 
 ```bash
-./manage.sh update [options]
+./manage.sh update
+./manage.sh update --version latest
+./manage.sh update --install-dir "$HOME/.local/bin"
 ```
 
 常用选项：
 
-- `--install-dir DIR`：更新已经安装在 `DIR` 中的 `codex`。
-- `--version VERSION`：安装指定版本。
-- `--skip-deps`：跳过依赖安装检查。
-- `--help`, `-h`：显示帮助。
+- `--install-dir DIR`
+- `--version VERSION`
+- `--skip-deps`
 
-## 移除
+### `remove`
+
+移除已安装的 `codex` 二进制，并可选择清理 Codex 配置数据。
 
 ```bash
-./manage.sh remove [options]
+./manage.sh remove
+./manage.sh remove --install-dir "$HOME/.local/bin"
+./manage.sh remove --purge-config
 ```
 
 常用选项：
 
-- `--install-dir DIR`：如果 `DIR` 中存在 `codex`，就从那里移除；如果未提供目录，则使用默认安装目录。
-- `--purge-config`：同时删除 `${CODEX_HOME:-$HOME/.codex}`。
-- `--help`, `-h`：显示帮助。
+- `--install-dir DIR`
+- `--purge-config`
 
-## 平台与依赖支持
-
-`manage.sh` 仅面向 macOS 和 Linux，并且只处理 `x86_64` 和 `arm64` 主机。
-
-当缺少依赖时，安装器会尽可能借助可用的包管理器自动安装。Linux 上支持的包管理器包括 `apt-get`、`dnf`、`yum`、`zypper` 和 `apk`。在 macOS 上，它会使用所需的系统工具，并且在缺少 `jq` 时可以通过 Homebrew 安装。
+> [!TIP]
+> 如果安装目录尚未加入 `PATH`，脚本会打印出需要添加的确切 `export` 命令，并提示你应更新哪个 shell 启动文件。
 
 ## 环境变量
 
-- `CODEX_INSTALL_DIR`：默认安装目录覆盖值。
-- `CODEX_VERSION`：等同于 `--version`。
-- `CODEX_SKIP_DEPS=1`：等同于 `--skip-deps`。
-- `CODEX_SKIP_LOGIN=1`：等同于 `--skip-login`。
-- `GITHUB_TOKEN`：可选令牌，用于提高 GitHub API 的速率限制。
-- `CODEX_INSTALLER_REPO_OWNER`：覆盖 bootstrap helper 仓库 owner。
-- `CODEX_INSTALLER_REPO_NAME`：覆盖 bootstrap helper 仓库名称。
-- `CODEX_INSTALLER_REPO_REF`：覆盖 bootstrap helper git ref。
+这些变量与 CLI 标志对应，适合用于自动化：
+
+| 变量 | 说明 |
+| --- | --- |
+| `CODEX_INSTALL_DIR` | `install` 或 `update` 的默认目标目录。 |
+| `CODEX_VERSION` | 发布选择器，例如 `latest` 或 `0.115.0`。 |
+| `CODEX_SKIP_DEPS=1` | 跳过依赖安装检查。 |
+| `CODEX_SKIP_LOGIN=1` | 在 `install` 之后跳过登录。 |
+| `GITHUB_TOKEN` | 可选的 GitHub token，用于提高 release API 的速率限制。 |
+| `CODEX_INSTALLER_REPO_OWNER` | 覆盖引导辅助存储库的 owner。 |
+| `CODEX_INSTALLER_REPO_NAME` | 覆盖引导辅助存储库的名称。 |
+| `CODEX_INSTALLER_REPO_REF` | 覆盖引导辅助存储库的 ref。 |
+
+## 工作原理
+
+该存储库刻意保持精简：
+
+- [`manage.sh`](./manage.sh) 是公开入口和 CLI 接口。
+- [`lib/common.sh`](./lib/common.sh) 包含平台检测、依赖安装、发布查询、校验和校验、解压、安装、登录和移除等辅助逻辑。
+- [`tests/smoke.sh`](./tests/smoke.sh) 覆盖核心 shell 行为，并防止破坏性边界情况。
+
+当 `manage.sh` 在非完整克隆环境中执行时，它可以从本存储库引导 `lib/common.sh`，这样单行 `curl | bash` 流程仍然可用。
+
+## 开发
+
+项目提供 GitHub Actions CI，用于：
+
+- ShellCheck lint
+- Bash 语法校验
+- Smoke tests
+
+本地开发就是标准的 shell 脚本工作流：
+
+```bash
+shellcheck -x manage.sh lib/*.sh tests/*.sh
+bash -n manage.sh lib/*.sh tests/*.sh
+bash tests/smoke.sh
+```
+
+Dependabot 会保持 GitHub Actions 依赖项为最新状态，成功的 Dependabot PR 也会通过存储库工作流自动合并。
 
 ## 许可证
 
-本存储库基于 MIT License 发布。详见 [`LICENSE`](LICENSE)。
+基于 MIT License 发布。参见 [`LICENSE`](./LICENSE)。

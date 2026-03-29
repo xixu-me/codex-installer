@@ -149,7 +149,7 @@ ensure_supported_platform() {
     local platform arch
     
     if ! platform="$(detect_platform)"; then
-        die "Unsupported platform: $(uname -s). This installer supports macOS and Linux only."
+        die "Unsupported platform: $(uname -s). This installer supports Linux and macOS only."
     fi
     
     if ! arch="$(detect_arch)"; then
@@ -276,13 +276,13 @@ fetch_release_metadata_to_file() {
     local release_ref="$1"
     local destination="$2"
     local url
-
+    
     if [ "$release_ref" = "latest" ]; then
         url="${CODEX_RELEASES_API_URL}/latest"
     else
         url="${CODEX_RELEASES_API_URL}/tags/${release_ref}"
     fi
-
+    
     if [ -n "${GITHUB_TOKEN:-}" ]; then
         curl -fsSL \
         -H "Accept: application/vnd.github+json" \
@@ -454,25 +454,25 @@ install_binary_to_dir() {
 
 resolve_codex_binary() {
     local install_dir="${1:-}"
-
+    
     if [ -n "$install_dir" ]; then
         [ -x "${install_dir}/codex" ] || return 1
         printf '%s/codex\n' "$install_dir"
         return 0
     fi
-
+    
     if command_exists codex; then
         command -v codex
         return 0
     fi
-
+    
     return 1
 }
 
 install_target_dir_for_existing_binary() {
     local install_dir="${1:-}"
     local codex_path
-
+    
     codex_path="$(resolve_codex_binary "$install_dir")" || return 1
     dirname "$codex_path"
 }
@@ -480,7 +480,7 @@ install_target_dir_for_existing_binary() {
 remove_codex_install() {
     local install_dir="${1:-}"
     local codex_path
-
+    
     codex_path="$(resolve_codex_binary "$install_dir")" || return 1
     remove_file "$codex_path"
 }

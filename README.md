@@ -1,89 +1,170 @@
 # codex-manager
 
-***[汉语](README.zh.md)***
+[![CI](https://github.com/xixu-me/codex-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/xixu-me/codex-manager/actions/workflows/ci.yml)
 
-`xixu-me/codex-manager` provides `manage.sh`, the only entrypoint for installing, updating, and removing the Codex CLI from the official `openai/codex` GitHub releases.
+**_[汉语](./README.zh.md)_**
 
-It supports macOS and Linux only, on `x86_64` and `arm64` systems.
+Install, update, and remove the official Codex CLI from [GitHub releases](https://github.com/openai/codex/releases) with a small Bash-based manager.
 
-## Entry point
+`codex-manager` is designed for straightforward shell installs on Linux and macOS. It fetches the correct release asset for the current platform, verifies published checksums when available, installs the `codex` binary into a sensible location, and can optionally start the device-code login flow after install.
 
-Use `manage.sh` for every operation:
+> [!NOTE]
+> The installer supports Linux and macOS targets only. You can edit this repository from other environments, but the managed Codex install flow is intended for Unix-like systems.
+
+## Highlights
+
+- Installs the official `codex` binary from GitHub releases.
+- Supports `install`, `update`, and `remove` workflows.
+- Accepts `latest`, `0.115.0`, `v0.115.0`, and `rust-v0.115.0` version formats.
+- Verifies release checksums when GitHub publishes them.
+- Installs missing dependencies automatically unless you opt out.
+- Works with common package managers including `apt`, `dnf`, `brew`, `zypper`, `apk`, and `yum`.
+
+## Why Device-Code Login Is The Default
+
+This installer explicitly runs:
+
+```bash
+codex login --device-auth
+```
+
+This flow prints a verification URL and one-time code, which works well on remote or headless machines. This repository passes the flag explicitly so the login path stays predictable. If device-code login is unavailable, Codex falls back to the standard browser-based login flow.
+
+## Quick Start
+
+Install the latest Codex release and start login:
+
+```bash
+curl -fsSL https://github.com/xixu-me/codex-manager/raw/refs/heads/main/manage.sh | bash -s -- install
+```
+
+Install a specific version:
+
+```bash
+curl -fsSL https://github.com/xixu-me/codex-manager/raw/refs/heads/main/manage.sh | bash -s -- install --version 0.115.0
+```
+
+Install without launching login:
+
+```bash
+curl -fsSL https://github.com/xixu-me/codex-manager/raw/refs/heads/main/manage.sh | bash -s -- install --skip-login
+```
+
+Use a custom install directory:
+
+```bash
+curl -fsSL https://github.com/xixu-me/codex-manager/raw/refs/heads/main/manage.sh | CODEX_INSTALL_DIR="$HOME/bin" bash -s -- install
+```
+
+## Commands
+
+Clone the repository if you want to run the manager locally:
+
+```bash
+git clone https://github.com/xixu-me/codex-manager.git
+cd codex-manager
+```
+
+Then use the main entrypoint:
 
 ```bash
 ./manage.sh <command> [options]
 ```
 
-You can also stream it directly from this repository:
+### `install`
+
+Installs Codex into the default or requested directory and optionally starts the device-code login flow. If device code login is unavailable, Codex falls back to the standard browser-based login flow.
 
 ```bash
-curl -fsSL https://github.com/xixu-me/codex-manager/raw/refs/heads/main/manage.sh | bash -s -- <command>
-```
-
-## Commands
-
-- `install`: install Codex and optionally start device-code login.
-- `update`: update an existing Codex install without logging in.
-- `remove`: remove the installed `codex` binary and optionally purge config.
-
-Run `./manage.sh <command> --help` for command-specific options.
-
-## Install
-
-```bash
-./manage.sh install [options]
+./manage.sh install
+./manage.sh install --version 0.115.0
+./manage.sh install --install-dir "$HOME/.local/bin" --skip-login
 ```
 
 Common options:
 
-- `--install-dir DIR`: install the binary into `DIR`.
-- `--version VERSION`: install a specific release. Accepted values are `latest`, `0.115.0`, `v0.115.0`, and `rust-v0.115.0`.
-- `--skip-deps`: skip package installation checks.
-- `--skip-login`: do not start device-code login after install.
-- `--help`, `-h`: show help.
+- `--install-dir DIR`
+- `--version VERSION`
+- `--skip-deps`
+- `--skip-login`
 
-## Update
+### `update`
+
+Updates an existing Codex installation in place without triggering login.
 
 ```bash
-./manage.sh update [options]
+./manage.sh update
+./manage.sh update --version latest
+./manage.sh update --install-dir "$HOME/.local/bin"
 ```
 
 Common options:
 
-- `--install-dir DIR`: update the `codex` binary already installed in `DIR`.
-- `--version VERSION`: install a specific release.
-- `--skip-deps`: skip package installation checks.
-- `--help`, `-h`: show help.
+- `--install-dir DIR`
+- `--version VERSION`
+- `--skip-deps`
 
-## Remove
+### `remove`
+
+Removes the installed `codex` binary and can optionally purge Codex config data.
 
 ```bash
-./manage.sh remove [options]
+./manage.sh remove
+./manage.sh remove --install-dir "$HOME/.local/bin"
+./manage.sh remove --purge-config
 ```
 
 Common options:
 
-- `--install-dir DIR`: remove `codex` from `DIR` if it exists there, or use the default install directory when no directory is provided.
-- `--purge-config`: also remove `${CODEX_HOME:-$HOME/.codex}`.
-- `--help`, `-h`: show help.
+- `--install-dir DIR`
+- `--purge-config`
 
-## Platform and dependency support
+> [!TIP]
+> If the install directory is not already on `PATH`, the script prints the exact export command to add it and suggests which shell startup file to update.
 
-`manage.sh` is designed for macOS and Linux only, and it only handles `x86_64` and `arm64` hosts.
+## Environment Variables
 
-When dependencies are missing, the installer tries to install them automatically using the available package manager on Linux. Supported managers include `apt-get`, `dnf`, `yum`, `zypper`, and `apk`. On macOS, it relies on the system tools it needs and can use Homebrew to install `jq` if it is missing.
+These variables mirror the CLI flags and are useful for automation:
 
-## Environment variables
+| Variable | Description |
+| --- | --- |
+| `CODEX_INSTALL_DIR` | Default target directory for install or update. |
+| `CODEX_VERSION` | Release selector such as `latest` or `0.115.0`. |
+| `CODEX_SKIP_DEPS=1` | Skip dependency installation checks. |
+| `CODEX_SKIP_LOGIN=1` | Skip login after `install`. |
+| `GITHUB_TOKEN` | Optional GitHub token to raise release API rate limits. |
+| `CODEX_INSTALLER_REPO_OWNER` | Override the bootstrap helper repository owner. |
+| `CODEX_INSTALLER_REPO_NAME` | Override the bootstrap helper repository name. |
+| `CODEX_INSTALLER_REPO_REF` | Override the bootstrap helper repository ref. |
 
-- `CODEX_INSTALL_DIR`: default install directory override.
-- `CODEX_VERSION`: same as `--version`.
-- `CODEX_SKIP_DEPS=1`: same as `--skip-deps`.
-- `CODEX_SKIP_LOGIN=1`: same as `--skip-login`.
-- `GITHUB_TOKEN`: optional token to raise GitHub API rate limits.
-- `CODEX_INSTALLER_REPO_OWNER`: override the bootstrap helper repository owner.
-- `CODEX_INSTALLER_REPO_NAME`: override the bootstrap helper repository name.
-- `CODEX_INSTALLER_REPO_REF`: override the bootstrap helper git ref.
+## How It Works
+
+The repository is intentionally small:
+
+- [`manage.sh`](./manage.sh) is the public entrypoint and CLI surface.
+- [`lib/common.sh`](./lib/common.sh) contains platform detection, dependency installation, release lookup, checksum verification, extraction, install, login, and removal helpers.
+- [`tests/smoke.sh`](./tests/smoke.sh) exercises the core shell behavior and guards against destructive edge cases.
+
+When `manage.sh` is executed outside a full clone, it can bootstrap `lib/common.sh` from this repository so the one-line `curl | bash` flow still works.
+
+## Development
+
+The project ships with GitHub Actions CI for:
+
+- ShellCheck linting
+- Bash syntax validation
+- Smoke tests
+
+Local development is standard shell scripting:
+
+```bash
+shellcheck -x manage.sh lib/*.sh tests/*.sh
+bash -n manage.sh lib/*.sh tests/*.sh
+bash tests/smoke.sh
+```
+
+Dependabot keeps GitHub Actions dependencies current, and successful Dependabot PRs are auto-merged through the repository workflow.
 
 ## License
 
-This repository is licensed under the MIT License. See [`LICENSE`](LICENSE).
+Licensed under the MIT License. See [`LICENSE`](./LICENSE).

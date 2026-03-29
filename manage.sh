@@ -279,7 +279,7 @@ run_install_command() {
         return 0
     fi
 
-    log_info "Starting the default ChatGPT device-code login flow."
+    log_info "Starting the device-code login flow."
     login_with_device_code "$installed_codex"
 }
 
