@@ -114,6 +114,25 @@ default_install_dir() {
     printf '%s/.local/bin\n' "$HOME"
 }
 
+preferred_tmp_root() {
+    if [ -n "${TMPDIR:-}" ] && [ -d "${TMPDIR}" ] && [ -w "${TMPDIR}" ]; then
+        printf '%s\n' "$TMPDIR"
+        return 0
+    fi
+
+    if [ -d /var/tmp ] && [ -w /var/tmp ]; then
+        printf '/var/tmp\n'
+        return 0
+    fi
+
+    if [ -d /tmp ] && [ -w /tmp ]; then
+        printf '/tmp\n'
+        return 0
+    fi
+
+    return 1
+}
+
 path_contains_dir() {
     case ":${PATH}:" in
         *":$1:"*)
@@ -398,7 +417,7 @@ extract_archive_binary() {
     archive_entry="$(tar -tzf "$archive_path" | sed -n '1p')" || return 1
     [ -n "$archive_entry" ] || die "Archive ${archive_path} did not contain an executable."
 
-    tmp_base="${TMPDIR:-/tmp}"
+    tmp_base="$(dirname "$output_dir")"
     extract_stderr="$(mktemp "${tmp_base%/}/codex-extract.XXXXXX")" || extract_stderr=""
 
     if [ -n "$extract_stderr" ]; then
@@ -406,7 +425,7 @@ extract_archive_binary() {
             if grep -Eq 'No space left on device|Wrote only [0-9]+ of [0-9]+ bytes' "$extract_stderr"; then
                 cat "$extract_stderr" >&2
                 rm -f "$extract_stderr"
-                log_error "Check available space in TMPDIR (${TMPDIR:-/tmp}) or set TMPDIR to a directory with more free space."
+                log_error "Check available space in the temporary workspace (${tmp_base}) or set TMPDIR to a directory with more free space."
                 return 1
             fi
 

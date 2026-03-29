@@ -166,6 +166,7 @@ install_release_binary() (
     local requested_version="$1"
     local install_dir="$2"
     local platform arch asset_name normalized_ref
+    local tmp_root
     local tmp_dir metadata_file archive_path extracted_binary
     local release_tag asset_url asset_digest installed_codex
 
@@ -176,7 +177,10 @@ install_release_binary() (
     }
 
     normalized_ref="$(normalize_release_ref "$requested_version")"
-    tmp_dir="$(mktemp -d)"
+    tmp_root="$(preferred_tmp_root)" || {
+        die "Could not determine a writable temporary directory. Set TMPDIR to a writable directory with enough free space."
+    }
+    tmp_dir="$(mktemp -d "${tmp_root%/}/codex-install.XXXXXX")"
     trap 'rm -rf "$tmp_dir"' EXIT
 
     metadata_file="${tmp_dir}/release.json"

@@ -58,7 +58,7 @@ main() {
     local installed_path old_path fake_path_bin fake_codex_bin real_dirname real_bash
     local existing_install_dir preserved_file other_exec_file path_candidate_dir
     local wrong_install_dir explicit_result
-    local install_target_dir result_path command_output dangerous_cli_bin remove_log update_log extract_error_output
+    local install_target_dir result_path command_output dangerous_cli_bin remove_log update_log extract_error_output preferred_temp_dir
     local ci_workflow dependabot_config automerge_workflow
     
     assert_eq "$(normalize_arch arm64)" "aarch64" "arm64 normalizes to aarch64"
@@ -88,7 +88,7 @@ main() {
     "$(normalize_sha256 'sha256:abcdef')" \
     "abcdef" \
     "sha256 prefix is stripped"
-    
+
     tmp_file="$(mktemp)"
     trap 'rm -f -- "${tmp_file:-}"' EXIT
     printf 'abc' >"$tmp_file"
@@ -100,6 +100,18 @@ main() {
     temp_root="$(mktemp -d)"
     real_tar="$(command -v tar)"
     trap 'rm -f -- "${tmp_file:-}"; rm -rf -- "${temp_root:-}"' EXIT
+
+    mkdir -p "${temp_root}/custom-tmp"
+    assert_eq \
+    "$(TMPDIR="${temp_root}/custom-tmp" preferred_tmp_root)" \
+    "${temp_root}/custom-tmp" \
+    "preferred_tmp_root honors TMPDIR when it is writable"
+    if [ -d /var/tmp ] && [ -w /var/tmp ]; then
+        assert_eq \
+        "$(unset TMPDIR; preferred_tmp_root)" \
+        "/var/tmp" \
+        "preferred_tmp_root defaults to /var/tmp when TMPDIR is unset"
+    fi
 
     archive_input_dir="${temp_root}/archive-input"
     archive_path="${temp_root}/codex.tar.gz"
@@ -156,7 +168,7 @@ EOF
         printf 'Assertion failed: extract_archive_binary should fail when tar cannot fully write the output file\n' >&2
         exit 1
     fi
-    assert_contains "$extract_error_output" "Check available space in TMPDIR" "extract_archive_binary explains likely temporary-directory disk exhaustion"
+    assert_contains "$extract_error_output" "Check available space in the temporary workspace" "extract_archive_binary explains likely temporary-directory disk exhaustion"
     PATH="$old_path"
 
     install_dir="${temp_root}/install-dir"
