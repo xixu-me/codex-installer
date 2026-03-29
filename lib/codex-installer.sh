@@ -272,6 +272,39 @@ fetch_release_metadata() {
     fi
 }
 
+fetch_release_metadata_to_file() {
+    local release_ref="$1"
+    local destination="$2"
+    local url
+
+    if [ "$release_ref" = "latest" ]; then
+        url="${CODEX_RELEASES_API_URL}/latest"
+    else
+        url="${CODEX_RELEASES_API_URL}/tags/${release_ref}"
+    fi
+
+    if [ -n "${GITHUB_TOKEN:-}" ]; then
+        curl -fsSL \
+        -H "Accept: application/vnd.github+json" \
+        -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+        -H "X-GitHub-Api-Version: 2022-11-28" \
+        --output "$destination" \
+        "$url" || {
+            rm -f "$destination"
+            return 1
+        }
+    else
+        curl -fsSL \
+        -H "Accept: application/vnd.github+json" \
+        -H "X-GitHub-Api-Version: 2022-11-28" \
+        --output "$destination" \
+        "$url" || {
+            rm -f "$destination"
+            return 1
+        }
+    fi
+}
+
 release_tag_from_metadata() {
     jq -r '.tag_name'
 }
@@ -362,10 +395,10 @@ extract_archive_binary() {
     local output_dir="$2"
     local archive_entry
     
-    archive_entry="$(tar -tzf "$archive_path" | sed -n '1p')"
+    archive_entry="$(tar -tzf "$archive_path" | sed -n '1p')" || return 1
     [ -n "$archive_entry" ] || die "Archive ${archive_path} did not contain an executable."
     
-    tar -xzf "$archive_path" -C "$output_dir"
+    tar -xzf "$archive_path" -C "$output_dir" || return 1
     
     archive_entry="${archive_entry#./}"
     printf '%s/%s\n' "$output_dir" "$archive_entry"
@@ -390,13 +423,30 @@ install_binary_to_dir() {
     local source_binary="$1"
     local install_dir="$2"
     local destination="${install_dir}/codex"
+    local staged_destination="${install_dir}/.codex.tmp.$$"
     
     ensure_install_directory "$install_dir"
     
     if [ -w "$install_dir" ]; then
-        install -m 0755 "$source_binary" "$destination"
+        rm -f "$staged_destination"
+        install -m 0755 "$source_binary" "$staged_destination" || {
+            rm -f "$staged_destination"
+            return 1
+        }
+        mv -f "$staged_destination" "$destination" || {
+            rm -f "$staged_destination"
+            return 1
+        }
     else
-        run_with_sudo install -m 0755 "$source_binary" "$destination"
+        run_with_sudo rm -f "$staged_destination"
+        run_with_sudo install -m 0755 "$source_binary" "$staged_destination" || {
+            run_with_sudo rm -f "$staged_destination"
+            return 1
+        }
+        run_with_sudo mv -f "$staged_destination" "$destination" || {
+            run_with_sudo rm -f "$staged_destination"
+            return 1
+        }
     fi
     
     printf '%s\n' "$destination"

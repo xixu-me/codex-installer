@@ -181,7 +181,9 @@ main() {
     trap cleanup EXIT
     
     log_info "Fetching release metadata for ${normalized_ref}."
-    fetch_release_metadata "$normalized_ref" >"$metadata_file"
+    fetch_release_metadata_to_file "$normalized_ref" "$metadata_file" || {
+        die "Failed to fetch release metadata for ${normalized_ref}."
+    }
     
     release_tag="$(release_tag_from_metadata <"$metadata_file")"
     asset_url="$(release_asset_download_url "$asset_name" <"$metadata_file")"
