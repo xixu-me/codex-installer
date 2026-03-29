@@ -43,8 +43,9 @@ assert_contains() {
 run_manage_command() {
     local output_file="$1"
     shift
+    local bash_path="${TEST_BASH_PATH:-bash}"
 
-    if bash "${SCRIPT_DIR}/../manage.sh" "$@" >"$output_file" 2>&1; then
+    if "$bash_path" "${SCRIPT_DIR}/../manage.sh" "$@" >"$output_file" 2>&1; then
         return 0
     fi
 
@@ -165,6 +166,8 @@ EOF
     fake_path_bin="${temp_root}/fake-path-bin"
     mkdir -p "$fake_path_bin"
     real_bash="$(command -v bash)"
+    TEST_BASH_PATH="$real_bash"
+    export TEST_BASH_PATH
     real_dirname="$(command -v dirname)"
     cat >"${fake_path_bin}/dirname" <<EOF
 #!${real_bash}
