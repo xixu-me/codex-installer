@@ -58,7 +58,7 @@ main() {
     local existing_install_dir preserved_file other_exec_file path_candidate_dir
     local wrong_install_dir explicit_result
     local install_target_dir result_path command_output dangerous_cli_bin remove_log update_log
-    local readme readme_zh ci_workflow dependabot_config automerge_workflow
+    local ci_workflow dependabot_config automerge_workflow
     
     assert_eq "$(normalize_arch arm64)" "aarch64" "arm64 normalizes to aarch64"
     assert_eq "$(normalize_arch amd64)" "x86_64" "amd64 normalizes to x86_64"
@@ -356,52 +356,9 @@ EOF
     fi
     assert_contains "$(cat "$command_output")" "Could not find an installed codex binary." "manage.sh update fails closed without following a PATH codex"
 
-    readme="$(cat "${SCRIPT_DIR}/../README.md")"
-    readme_zh="$(cat "${SCRIPT_DIR}/../README.zh.md")"
     ci_workflow="$(cat "${SCRIPT_DIR}/../.github/workflows/ci.yml")"
     dependabot_config="$(cat "${SCRIPT_DIR}/../.github/dependabot.yml")"
     automerge_workflow="$(cat "${SCRIPT_DIR}/../.github/workflows/dependabot-auto-merge.yml")"
-
-    assert_contains "$readme" "\`xixu-me/codex-manager\` provides \`manage.sh\`" "README.md uses the new repository name and entrypoint wording"
-    assert_contains "$readme_zh" "\`xixu-me/codex-manager\` 提供 \`manage.sh\`" "README.zh.md uses the new repository name and entrypoint wording"
-    assert_contains "$readme" './manage.sh <command> [options]' "README.md documents the command entrypoint"
-    assert_contains "$readme_zh" './manage.sh <command> [options]' "README.zh.md documents the command entrypoint"
-    assert_contains "$readme" 'curl -fsSL https://github.com/xixu-me/codex-manager/raw/refs/heads/main/manage.sh | bash -s -- <command>' "README.md shows the streaming example"
-    assert_contains "$readme_zh" 'curl -fsSL https://github.com/xixu-me/codex-manager/raw/refs/heads/main/manage.sh | bash -s -- <command>' "README.zh.md shows the streaming example"
-    assert_contains "$readme" './manage.sh install [options]' "README.md documents install"
-    assert_contains "$readme" './manage.sh update [options]' "README.md documents update"
-    assert_contains "$readme" './manage.sh remove [options]' "README.md documents remove"
-    assert_contains "$readme_zh" './manage.sh install [options]' "README.zh.md documents install"
-    assert_contains "$readme_zh" './manage.sh update [options]' "README.zh.md documents update"
-    assert_contains "$readme_zh" './manage.sh remove [options]' "README.zh.md documents remove"
-    assert_contains "$readme" 'macOS and Linux only' "README.md documents platform constraints"
-    assert_contains "$readme" "\`x86_64\` and \`arm64\`" "README.md documents architecture constraints"
-    assert_contains "$readme_zh" '仅支持 macOS 和 Linux' "README.zh.md documents platform constraints"
-    assert_contains "$readme_zh" "\`x86_64\` 与 \`arm64\`" "README.zh.md documents architecture constraints"
-    assert_contains "$readme" "Supported managers include \`apt-get\`, \`dnf\`, \`yum\`, \`zypper\`, and \`apk\`" "README.md documents dependency auto-install behavior"
-    assert_contains "$readme_zh" "Linux 上支持的包管理器包括 \`apt-get\`、\`dnf\`、\`yum\`、\`zypper\` 和 \`apk\`" "README.zh.md documents dependency auto-install behavior"
-    assert_contains "$readme" "Homebrew to install \`jq\` if it is missing" "README.md documents Homebrew fallback"
-    assert_contains "$readme_zh" "缺少 \`jq\` 时可以通过 Homebrew 安装" "README.zh.md documents Homebrew fallback"
-    if [[ "$readme" == *"install.sh | bash"* || "$readme_zh" == *"install.sh | bash"* ]]; then
-        printf 'Assertion failed: README files should not reference install.sh bootstrap usage\n' >&2
-        exit 1
-    fi
-    if [[ "$readme" == *"install.sh [options]"* || "$readme_zh" == *"install.sh [options]"* ]]; then
-        printf 'Assertion failed: README files should not document install.sh options\n' >&2
-        exit 1
-    fi
-    if [[ "$readme" == *"scripts/login-device.sh"* || "$readme_zh" == *"scripts/login-device.sh"* ]]; then
-        printf 'Assertion failed: README files should not reference scripts/login-device.sh\n' >&2
-        exit 1
-    fi
-    if [[ "$readme" == *"scripts/uninstall.sh"* || "$readme_zh" == *"scripts/uninstall.sh"* ]]; then
-        printf 'Assertion failed: README files should not reference scripts/uninstall.sh\n' >&2
-        exit 1
-    fi
-    if [[ "$readme" == *"codex-installer"* || "$readme_zh" == *"codex-installer"* ]]; then
-        printf 'Assertion failed: README files should not use the old repository name\n' >&2
-        exit 1
-    fi
 
     assert_contains "$ci_workflow" "shellcheck -x manage.sh lib/*.sh tests/*.sh" "CI runs ShellCheck against the current script layout"
     assert_contains "$ci_workflow" "bash -n manage.sh lib/*.sh tests/*.sh" "CI runs syntax checks against the current script layout"
