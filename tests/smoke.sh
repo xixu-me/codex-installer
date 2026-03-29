@@ -58,7 +58,7 @@ main() {
     local installed_path old_path fake_path_bin fake_codex_bin real_dirname real_bash
     local existing_install_dir preserved_file other_exec_file path_candidate_dir
     local wrong_install_dir explicit_result
-    local install_target_dir result_path command_output dangerous_cli_bin remove_log update_log extract_error_output preferred_temp_dir
+    local install_target_dir result_path command_output dangerous_cli_bin remove_log update_log extract_error_output
     local manage_source_dir manage_failure_log install_call_marker
     local ci_workflow dependabot_config automerge_workflow
     
