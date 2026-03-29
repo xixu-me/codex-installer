@@ -205,7 +205,19 @@ EOF
     manage_source_dir="${temp_root}/manage-source"
     mkdir -p "${manage_source_dir}/lib"
     sed '$d' "${SCRIPT_DIR}/../manage.sh" >"${manage_source_dir}/manage.sh"
-    cp "${SCRIPT_DIR}/../lib/common.sh" "${manage_source_dir}/lib/common.sh"
+    awk '
+        /^preferred_tmp_root\(\) \{/ {
+            skipping = 1
+            next
+        }
+        skipping && /^}/ {
+            skipping = 0
+            next
+        }
+        !skipping {
+            print
+        }
+    ' "${SCRIPT_DIR}/../lib/common.sh" >"${manage_source_dir}/lib/common.sh"
 
     manage_failure_log="${temp_root}/install-release.log"
     install_call_marker="${temp_root}/install-called"

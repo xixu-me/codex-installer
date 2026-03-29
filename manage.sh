@@ -63,6 +63,28 @@ fi
 
 trap cleanup_bootstrap EXIT
 
+# Keep bootstrap installs working if a cached remote helper lags behind manage.sh.
+if ! command -v preferred_tmp_root >/dev/null 2>&1; then
+    preferred_tmp_root() {
+        if [ -n "${TMPDIR:-}" ] && [ -d "${TMPDIR}" ] && [ -w "${TMPDIR}" ]; then
+            printf '%s\n' "$TMPDIR"
+            return 0
+        fi
+
+        if [ -d /var/tmp ] && [ -w /var/tmp ]; then
+            printf '/var/tmp\n'
+            return 0
+        fi
+
+        if [ -d /tmp ] && [ -w /tmp ]; then
+            printf '/tmp\n'
+            return 0
+        fi
+
+        return 1
+    }
+fi
+
 print_root_help() {
     cat <<'EOF'
 Manage Codex CLI installs from the official openai/codex GitHub releases.
