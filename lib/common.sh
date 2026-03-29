@@ -393,12 +393,32 @@ verify_archive_checksum() {
 extract_archive_binary() {
     local archive_path="$1"
     local output_dir="$2"
-    local archive_entry
+    local archive_entry extract_stderr tmp_base
     
     archive_entry="$(tar -tzf "$archive_path" | sed -n '1p')" || return 1
     [ -n "$archive_entry" ] || die "Archive ${archive_path} did not contain an executable."
-    
-    tar -xzf "$archive_path" -C "$output_dir" || return 1
+
+    tmp_base="${TMPDIR:-/tmp}"
+    extract_stderr="$(mktemp "${tmp_base%/}/codex-extract.XXXXXX")" || extract_stderr=""
+
+    if [ -n "$extract_stderr" ]; then
+        if ! tar -xzf "$archive_path" -C "$output_dir" 2>"$extract_stderr"; then
+            if grep -Eq 'No space left on device|Wrote only [0-9]+ of [0-9]+ bytes' "$extract_stderr"; then
+                cat "$extract_stderr" >&2
+                rm -f "$extract_stderr"
+                log_error "Check available space in TMPDIR (${TMPDIR:-/tmp}) or set TMPDIR to a directory with more free space."
+                return 1
+            fi
+
+            cat "$extract_stderr" >&2
+            rm -f "$extract_stderr"
+            return 1
+        fi
+
+        rm -f "$extract_stderr"
+    else
+        tar -xzf "$archive_path" -C "$output_dir" || return 1
+    fi
     
     archive_entry="${archive_entry#./}"
     printf '%s/%s\n' "$output_dir" "$archive_entry"

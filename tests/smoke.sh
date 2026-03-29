@@ -53,12 +53,12 @@ run_manage_command() {
 }
 
 main() {
-    local tmp_file temp_root real_tar fake_tar_bin fake_install_bin
+    local tmp_file temp_root real_tar fake_tar_bin fake_install_bin no_space_tar_bin
     local archive_input_dir archive_path install_dir source_binary extracted_path
     local installed_path old_path fake_path_bin fake_codex_bin real_dirname real_bash
     local existing_install_dir preserved_file other_exec_file path_candidate_dir
     local wrong_install_dir explicit_result
-    local install_target_dir result_path command_output dangerous_cli_bin remove_log update_log
+    local install_target_dir result_path command_output dangerous_cli_bin remove_log update_log extract_error_output
     local ci_workflow dependabot_config automerge_workflow
     
     assert_eq "$(normalize_arch arm64)" "aarch64" "arm64 normalizes to aarch64"
@@ -131,6 +131,32 @@ EOF
         exit 1
     fi
     printf '%s' "${extracted_path:-}" >/dev/null
+    PATH="$old_path"
+
+    no_space_tar_bin="${temp_root}/no-space-tar-bin"
+    mkdir -p "$no_space_tar_bin"
+    cat >"${no_space_tar_bin}/tar" <<EOF
+#!/usr/bin/env bash
+if [ "\$1" = "-tzf" ]; then
+    exec "$real_tar" "\$@"
+fi
+
+if [ "\$1" = "-xzf" ]; then
+    printf 'tar: codex-x86_64-unknown-linux-musl: Wrote only 6656 of 10240 bytes\n' >&2
+    printf 'tar: Exiting with failure status due to previous errors\n' >&2
+    exit 1
+fi
+
+exec "$real_tar" "\$@"
+EOF
+    chmod +x "${no_space_tar_bin}/tar"
+
+    PATH="${no_space_tar_bin}:$old_path"
+    if extract_error_output="$(extract_archive_binary "$archive_path" "${temp_root}/extract-no-space" 2>&1)"; then
+        printf 'Assertion failed: extract_archive_binary should fail when tar cannot fully write the output file\n' >&2
+        exit 1
+    fi
+    assert_contains "$extract_error_output" "Check available space in TMPDIR" "extract_archive_binary explains likely temporary-directory disk exhaustion"
     PATH="$old_path"
 
     install_dir="${temp_root}/install-dir"
