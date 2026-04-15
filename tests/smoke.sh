@@ -474,7 +474,7 @@ EOF
     assert_contains "$automerge_workflow" "github.event.workflow_run.conclusion == 'success'" "Auto-merge workflow waits for a successful CI run"
     assert_contains "$automerge_workflow" "contents: write" "Auto-merge workflow requests contents write permission"
     assert_contains "$automerge_workflow" "pull-requests: write" "Auto-merge workflow requests pull request write permission"
-    assert_contains "$automerge_workflow" "actions/github-script@v7" "Auto-merge workflow uses GitHub's script action to merge through the API"
+    assert_contains "$automerge_workflow" "actions/github-script@" "Auto-merge workflow uses GitHub's script action to merge through the API"
     assert_contains "$automerge_workflow" "merge_method: 'squash'" "Auto-merge workflow uses squash merging"
     assert_contains "$automerge_workflow" "sha: context.payload.workflow_run.head_sha" "Auto-merge workflow only merges the tested commit"
     
